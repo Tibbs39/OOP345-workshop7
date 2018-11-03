@@ -70,6 +70,7 @@ namespace w7 {
         public:
             // constructor (filestream, field width, decimal precision)
             DataTable(std::ifstream& ifs, const int& fw, const int& prec) : width(fw), decPrec(prec) { 
+                // TODO: Throw an exception if there's a formatting error in the fstream
                 std::string buffer;
                 int ln_cnt = 0;
                 while (!ifs.eof()) {
