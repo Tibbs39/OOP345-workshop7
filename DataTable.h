@@ -10,10 +10,14 @@
 #define W7_DATATABLE_H
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <string>
 
 namespace w7 {
 /*     template <typename T = int>
@@ -32,72 +36,149 @@ namespace w7 {
         T y() { return yVal; }
     }; */
 
-    template <typename T>
+    template <typename T = double>
     class DataTable {
-        // internal pair class
-        template <typename T>
+        /* internal class Pair (should I not make this a nested class??) */
+        template <typename T2 = T>
         class Pair {
-            T xVal;
-            T yVal;
+            T2 xVal;
+            T2 yVal;
 
             public:
                 // constructor 
-                Pair() {} // default constructor
-                Pair(const T& x, const T& y) : xVal(x), yVal(y) {}
+                Pair(const T2& x, const T2& y) : xVal(x), yVal(y) {}
 
                 // return X
-                T x() { return xVal; }
+                T2 x() const { return xVal; }
                 // return Y
-                T y() { return yVal; }
-        };
+                T2 y() const { return yVal; }
+        }; // end of internal class Pair
 
         int width;
         int decPrec;
-
+        
         // a vector of pairs
         std::vector<Pair<T>> dataset;
-        // constructor (filestream, field width, decimal precision)
+
+        // passes func to std::accumulate
+        template <typename Func>
+        T calcSum(Func func) const {
+            //T init = 0;
+            return std::accumulate(dataset.begin(), dataset.end(), T(0), func);
+        }
 
         public:
-            // mean
+            // constructor (filestream, field width, decimal precision)
+            DataTable(std::ifstream& ifs, const int& fw, const int& prec) : width(fw), decPrec(prec) { 
+                std::string buffer;
+                int ln_cnt = 0;
+                while (!ifs.eof()) {
+                    std::getline(ifs, buffer);
+                    ++ln_cnt;
+                }
+
+                ifs.clear();
+                ifs.seekg(0, ifs.beg);
+
+                T tmpX, tmpY;
+                for (int i = 0; i < ln_cnt-1; i++) {
+                    ifs >> tmpX >> tmpY;
+                    Pair<T> tmpXY(tmpX, tmpY);
+                    dataset.push_back(tmpXY);
+                }
+            }
+            
+            // mean of Y values
             T mean() const {
-                T sum = std::accumulate(dataset.begin(), dataset.end(), 0, [](const T& a, const Pair<T>& b) -> T {
-                    return a + b.x();
+                T sum = calcSum([](const T& a, const Pair<T>& b) -> T {
+                    return a + b.y();
                 });
 
                 return sum / dataset.size();
             }
 
-            // sigma
+            // standard deviation of Y values
             T sigma() const {
+                // calculate mean & store in a variable
+                T avg = mean();
+                
+                /* auto lambda = [&](const T& a, const Pair<T>& b) -> T {
+                    return a + pow(b.y() - avg, 2);
+                };
 
+                T sum = calcSum(lambda); */
+                // get sum of for each (element minus mean)^2
+                T sum = calcSum([&](const T& a, const Pair<T>& b) -> T {
+                    return a + pow(b.y() - avg, 2);
+                });
+                // divide by num of elements minus 1
+                sum = sum / (dataset.size() - 1);
+
+                // square root everything
+                sum = sqrt(sum);
+
+                return sum;
             }
 
             // median
             T median() const {
                 // sort the data set
-                // check if length even or odd
-                // if even, get element at(length / 2) and element at(length / 2 + 1)
-                // then the sum of two elements divided by 2
+                std::vector<Pair<T>> temp = dataset;
+                std::sort(temp.begin(), temp.end(), [](const Pair<T>& a, const Pair<T>& b) -> bool {
+                    return a.y() < b.y();
+                });
 
-                // if odd, get element at(length + 1) divided by 2
+                /* NOTE: 
+                    Is this the correct median calculation? I thought if length was even
+                    the median should be the average of the two middle elements of the data set.
+                */
+
+                // if length = odd,  get element at( (length + 1) / 2 )
+                // if length = even, get element at( length / 2 )
+                int i = (temp.size() + (temp.size() % 2) ) / 2;
+                
+                
+                return temp[i].y();
             }
 
             // regression
             void regression(T& slope, T& y_intercept) const {
+                // calculate required sums
+                T sum_x = calcSum([](const T& a, const Pair<T>& b) -> T {
+                    return (a + b.x());
+                });
 
-            }
+                T sum_y = calcSum([](const T& a, const Pair<T>& b) -> T {
+                    return a + b.y();
+                });
+
+                T sum_xy = calcSum([](const T& a, const Pair<T>& b) -> T {
+                    return a + b.x() * b.y();
+                });
+
+                T sum_xSq = calcSum([](const T& a, const Pair<T>&b) -> T {
+                    return a + pow(b.x(), 2);
+                });
+
+                T n = dataset.size(); // n = size
+
+                // calculate slope
+                slope = ( (n * sum_xy) - (sum_x * sum_y) ) / ( (n * sum_xSq) - pow(sum_x,2) );
+
+                // calculate y-intercept
+                y_intercept = (sum_y - slope * sum_x) / n;
+            } 
 
             // display the data set
             void display(std::ostream& os) const {
                 os << std::setw(width) << "x" << std::setw(width) << "y" << std::endl;
 
-                std::for_each(dataset.begin(), dataset.end(), [](const Pair<T>& a) {
-                    os << std::setw(width) << std::setprecision(decPrec) << a.x()
-                       << std::setw(width) << std::setprecision(decPrec) << a.y() << std::endl;
+                os << std::fixed << std::setprecision(decPrec);
+
+                std::for_each(dataset.begin(), dataset.end(), [&](const Pair<T>& src) {
+                    os << std::setw(width) << src.x()
+                       << std::setw(width) << src.y() << std::endl;
                 });
-
-
             }
 
             // return the size of the data set
@@ -105,6 +186,13 @@ namespace w7 {
                 return dataset.size();
             }
     };
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& os, const DataTable<T>& src) {
+        src.display(os);
+
+        return os;
+    }
 }
 
 
