@@ -46,15 +46,20 @@ namespace w7 {
                 int ln_cnt = 0;
                 while (!ifs.eof()) {
                     std::getline(ifs, buffer);
-                    ++ln_cnt;
+                    if (buffer.length() > 0)
+                        ++ln_cnt;
                 }
 
                 ifs.clear();
                 ifs.seekg(0, ifs.beg);
 
                 T tmpX, tmpY;
-                for (int i = 0; i < ln_cnt-1; i++) {
+                for (int i = 0; i < ln_cnt; i++) {
                     ifs >> tmpX >> tmpY;
+                    if (ifs.fail()) {
+                        std::string err = "Invalid Format";
+                        throw err;
+                    }
                     xVals.push_back(tmpX);
                     yVals.push_back(tmpY);
                 }
@@ -62,9 +67,7 @@ namespace w7 {
             
             // mean of Y values
             T mean() const {
-                T sum = calcSum(yVals);
-
-                return sum / getSize();
+                return calcSum(yVals) / getSize();
             }
 
             // standard deviation of Y values
