@@ -1,6 +1,6 @@
-# Workshop 07 - STL Containers
+# Workshop 07 - STL Algorithms
 
-In this workshop, we store a set of polymorphic objects in an STL container.
+In this workshop, we use the Standard Template Library’s algorithms to evaluate sample data.
 
 w7.cpp was provided to us to test our code, with some portions we had to add ourselves.
 
