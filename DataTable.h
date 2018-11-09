@@ -20,22 +20,6 @@
 #include <string>
 
 namespace w7 {
-/*     template <typename T = int>
-    class Pair {
-        T xVal;
-        T yVal;
-
-        // constructor 
-        Pair() {} // default constructor
-        Pair(const T& x, const T& y) : xVal(x), yVal(y) {}
-
-        // return X
-        T x() { return xVal; }
-
-        // return Y
-        T y() { return yVal; }
-    }; */
-
     template <typename T = double>
     class DataTable {
         /* internal class Pair (should I not make this a nested class??) */
@@ -103,11 +87,6 @@ namespace w7 {
                 // calculate mean & store in a variable
                 T avg = mean();
                 
-                /* auto lambda = [&](const T& a, const Pair<T>& b) -> T {
-                    return a + pow(b.y() - avg, 2);
-                };
-
-                T sum = calcSum(lambda); */
                 // get sum of for each (element minus mean)^2
                 T sum = calcSum([&](const T& a, const Pair<T>& b) -> T {
                     return a + pow(b.y() - avg, 2);
@@ -145,18 +124,22 @@ namespace w7 {
             // regression
             void regression(T& slope, T& y_intercept) const {
                 // calculate required sums
+                // some of X
                 T sum_x = calcSum([](const T& a, const Pair<T>& b) -> T {
                     return (a + b.x());
                 });
 
+                // sum of Y
                 T sum_y = calcSum([](const T& a, const Pair<T>& b) -> T {
                     return a + b.y();
                 });
 
+                // sum of X*Y
                 T sum_xy = calcSum([](const T& a, const Pair<T>& b) -> T {
                     return a + b.x() * b.y();
                 });
 
+                // sum of X^2
                 T sum_xSq = calcSum([](const T& a, const Pair<T>&b) -> T {
                     return a + pow(b.x(), 2);
                 });
